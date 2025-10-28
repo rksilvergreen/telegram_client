@@ -1,0 +1,21 @@
+name: telegram_nats
+description: A starting point for Dart libraries or applications.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.9.2
+
+# Add regular dependencies here.
+dependencies:
+  recase: ^4.1.0
+  dart_nats: ^0.6.5
+  yaml: ^3.1.3
+  automation_nats:
+    path: ../../automation_nats
+  telegram_api:
+    path: ../telegram_api
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

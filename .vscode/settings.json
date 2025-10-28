@@ -1,0 +1,27 @@
+{
+    "material-icon-theme.folders.associations": {
+        "_code_builders": "code_builders",
+        "mason": "mason",
+        "trigger": "",
+        "_gen": "",
+        "types": ""
+    },
+    "material-icon-theme.folders.customClones": [
+        {
+            "name": "code_builders",
+            "base": "tools",
+            "color": "#2b2b2b",
+            "rootFolderNames": [
+                "code_builders"
+            ]
+        },
+        {
+            "name": "mason",
+            "base": "mjml",
+            "color": "#9c7251",
+            "rootFolderNames": [
+                "mason"
+            ]
+        }
+    ],
+}
