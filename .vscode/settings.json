@@ -1,10 +1,7 @@
 {
     "material-icon-theme.folders.associations": {
-        "_code_builders": "code_builders",
         "mason": "mason",
-        "trigger": "",
-        "_gen": "",
-        "types": ""
+        "triggers": "",
     },
     "material-icon-theme.folders.customClones": [
         {
