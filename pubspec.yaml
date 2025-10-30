@@ -8,6 +8,7 @@ environment:
 
 # Add regular dependencies here.
 dependencies:
+  collection: ^1.19.1
   recase: ^4.1.0
   dart_nats: ^0.6.5
   yaml: ^3.1.3

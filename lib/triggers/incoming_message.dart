@@ -58,6 +58,13 @@ enum MessageType {
 }
 
 extension PublisherIncomingMessageExtension on ClientTriggerPublisher {
+
+  Future<void> update(Update update) async {
+    final tokens = filter.
+    await _client.pubString(update.subject, jsonEncode(update.toJson()));
+  }
+
+
   Future<void> incomingMessage(Message message) async {
     final updateType = UpdateType.message;
     final chatType = ChatType.fromChat(message.chat);

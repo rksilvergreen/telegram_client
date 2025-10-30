@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:recase/recase.dart';
 import 'package:telegram_api/telegram_api.dart' as api;
 
@@ -26,52 +27,74 @@ mixin Subject {
   String get subject;
 }
 
-/// If newMessage id provided -> one subject
-/// If newMessage && editedMessage id provided -> two subjects
-/// If none is provided -> ???
-///
-/// what if we have
-///
-/// final int? id;
-/// final Message? newMessage;
-/// final AnswerQuesry? answerQuery;
-/// final String? name;
-///
-/// and Message and AnswerQuesry are not the same token length??
-/// How do we know what the tokens signify
-///
+final x = Update.newMessage(
+  message: Message(
+    chat: Chat(
+      chatType: ChatType.private,
+      id: 356356,
+    ),
+    userId: 1785764,
+    messageType: MessageType.text,
+  ),
+);
+
 abstract class Update with Subject {
-  UpdateType get updateType;
-}
+  final UpdateType updateType;
 
-class NewMessageUpdate implements Update {
-  @override
-  final UpdateType updateType = UpdateType.newMessage;
-  final Message? message;
+  const Update._(this.updateType);
 
-  const NewMessageUpdate({required this.message});
+  factory Update.newMessage({required Message message}) => NewMessageUpdate._(message);
+  factory Update.editedMessage({required Message message}) => EditedMessageUpdate._(message);
+  factory Update.other() => OtherUpdate._();
+
+  factory Update.fromApi(api.Update update) {
+    final newMessageFields = [update.message, update.channelPost, update.businessMessage];
+    final newMessage = newMessageFields.firstWhereOrNull((field) => field != null);
+    if (newMessage != null) {
+      return NewMessageUpdate._(Message.fromApi(update.message!));
+    }
+
+    final editedMessageFields = [update.editedMessage, update.editedChannelPost, update.editedBusinessMessage];
+    final editedMessage = editedMessageFields.firstWhereOrNull((field) => field != null);
+    if (editedMessage != null) {
+      return EditedMessageUpdate._(Message.fromApi(update.editedMessage!));
+    }
+
+    return OtherUpdate._();
+  }
 
   String get _updateTypeToken => ReCase(updateType.name).snakeCase;
+
+  @override
+  String get subject => _updateTypeToken;
+}
+
+class NewMessageUpdate extends Update {
+  final Message? message;
+
+  const NewMessageUpdate._(this.message) : super._(UpdateType.newMessage);
+
   String get _messageToken => message != null ? message!.subject : Message._nullSubject;
 
   @override
-  String get subject => '$_updateTypeToken.$_messageToken';
+  String get subject => '${super.subject}.$_messageToken';
 }
 
-class EditedMessageUpdate implements Update {
-  @override
-  final UpdateType updateType = UpdateType.editedMessage;
+class EditedMessageUpdate extends Update {
   final Message? message;
 
-  const EditedMessageUpdate({required this.message});
+  const EditedMessageUpdate._(this.message) : super._(UpdateType.editedMessage);
 
-  String get _updateTypeToken => ReCase(updateType.name).snakeCase;
   String get _messageToken => message != null ? message!.subject : Message._nullSubject;
 
   @override
-  String get subject => '$_updateTypeToken.$_messageToken';
+  String get subject => '${super.subject}.$_messageToken';
+}
 
-  factory EditedMessageUpdate.fromApi(api.Update update) => EditedMessageUpdate(message: update.message != null ? Message.fromApi(update.message!) : null);
+class OtherUpdate extends Update {
+  const OtherUpdate._() : super._(UpdateType.other);
+
+  factory OtherUpdate.fromApi(api.Update update) => OtherUpdate._();
 }
 
 class Message with Subject {
@@ -122,21 +145,4 @@ class Message with Subject {
   );
 }
 
-class Chat with Subject {
-  final ChatType? chatType;
-  final int? id;
 
-  const Chat({this.chatType, this.id});
-
-  String get _chatTypeToken => chatType != null ? ReCase(chatType!.name).snakeCase : '*';
-  String get _idToken => id != null ? id!.toString() : '*';
-
-  @override
-  String get subject => '$_chatTypeToken.$_idToken';
-  static String get _nullSubject => '*.*';
-
-  factory Chat.fromApi(api.Chat chat) => Chat(
-    chatType: ChatType.values.firstWhere((e) => ReCase(e.name).snakeCase == chat.type),
-    id: chat.id,
-  );
-}
