@@ -1,0 +1,105 @@
+sidl_version: 1
+namespace: com.example
+
+# ---------- Code generation rules ----------
+codegen:
+  file_naming:
+    publisher: subject
+    subscriber: filter
+  class_naming:
+    publisher: Subject
+    subscriber: Filter
+
+# ---------- Enums ----------
+enums:
+
+  - name: "UpdateType"
+    values: [newMessage, editedMessage, other]
+
+  - name: "MessageType"
+    values: [text, photo, video, audio, document, sticker, animation, voice, videoNote, contact, location, venue, poll, other]  
+
+  - name: "ChatType"
+    values: [private, group, channel]
+
+# ---------- Tokens ----------
+tokens:
+  - name: "update_type"
+    type: UpdateType
+
+  - name: "chat_type"
+    type: ChatType
+
+  - name: "chat_id"
+    type: Int
+
+  - name: "user_id"
+    type: Int
+
+  - name: "message_type"
+    type: MessageType
+
+# ---------- Fragments ----------
+fragments:
+  - name: "Message"
+    fields:
+      - fragment: Chat
+      - name: "userId"
+        token: user_id
+      - name: "messageType"
+        token: message_type
+
+  - name: "Chat"
+    fields:
+      - name: "chatType"
+        token: chat_type
+      - name: "chatId"
+        token: chat_id
+
+# ---------- Structs ----------
+structs:
+  - name: "Update"
+    super_struct:
+      abstract: true
+      discriminator_field:
+        name: "updateType"
+        token: update_type
+    
+  - name: "NewMessageUpdate"
+    sub_struct:
+      super_struct: Update
+      token_value: UpdateType:newMessage
+    fields:
+      # - name: "message"
+      #   struct: Message
+      - fragment: Message
+
+  - name: "EditedMessageUpdate"
+    sub_struct:
+      super_struct: Update
+      token_value: UpdateType:editedMessage
+    fields:
+      # - name: "message"
+      #   struct: Message
+      - fragment: Message
+
+  - name: "OtherUpdate"
+    sub_struct:
+      super_struct: Update
+      token_value: UpdateType:other
+
+  # - name: "Message"
+  #   fields:
+  #     - name: "chat"
+  #       struct: Chat
+  #     - name: "userId"
+  #       token: user_id
+  #     - name: "messageType"
+  #       token: message_type
+
+  # - name: "Chat"
+  #   fields:
+  #     - name: "chatType"
+  #       token: chat_type
+  #     - name: "chatId"
+  #       token: chat_id

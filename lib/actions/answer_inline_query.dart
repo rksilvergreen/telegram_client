@@ -1,4 +1,4 @@
-part of 'package:telegram_nats/telegram_nats.dart';
+part of 'package:telegram_client/telegram_client.dart';
 
 extension AnswerInlineQueryExtension on ClientAction {
   Future<bool> answerInlineQuery({

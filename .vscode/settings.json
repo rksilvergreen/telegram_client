@@ -2,6 +2,7 @@
     "material-icon-theme.folders.associations": {
         "mason": "mason",
         "triggers": "",
+        "filters": "",
     },
     "material-icon-theme.folders.customClones": [
         {
