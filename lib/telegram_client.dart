@@ -1,70 +1,103 @@
-part of 'telegram_nats.dart';
+//ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'dart:convert';
+import 'dart:io';
+import 'package:async/async.dart';
+import 'package:telegram_api/telegram_api.dart' hide File;
+import 'package:yaml/yaml.dart' as yaml;
+import 'package:nats_client/nats_client.dart' hide Message;
+import 'package:telegram_client/triggers/_gen/nats_protocol/filters.g.dart' as _filters;
+import 'package:telegram_client/triggers/_gen/nats_protocol/subjects.g.dart' as _subjects;
 
-class Client implements NatsClient {
-  @override
-  final nats.Client client;
+export 'package:telegram_api/telegram_api.dart';
+
+part 'actions/answer_callback_query.dart';
+part 'actions/add_sticker_to_set.dart';
+part 'actions/answer_inline_query.dart';
+
+part 'triggers/client_trigger_extensions.dart';
+
+class Client {
   final Credentials credentials;
-  @override
-  final ClientPublisher pub;
-  @override
-  final ClientSubscriber sub;
-  Client(this.client, this.credentials) : pub = ClientPublisher._(client, credentials), sub = ClientSubscriber._(client, credentials);
+  final ClientTrigger triggers;
+  final ClientAction actions;
+  Client._(this.credentials)
+    : triggers = ClientTrigger._(credentials),
+      actions = ClientAction._(Telegram(botToken: credentials.token));
+
+  static Future<Client> init(Credentials credentials) async {
+    await NatsClient.instance.init();
+    return Client._(credentials);
+  }
 }
 
-class ClientPublisher implements NatsClientPublisher {
-  @override
-  final ClientPublisherTrigger trigger;
-  @override
-  final ClientPublisherAction action;
-  ClientPublisher._(nats.Client client, Credentials credentials)
-    : trigger = ClientPublisherTrigger._(client, credentials  ),
-      action = ClientPublisherAction._(client, credentials);
+class ClientTrigger {
+  final ClientTriggerPublisher pub;
+  final ClientTriggerSubscriber sub;
+  ClientTrigger._(Credentials credentials)
+    : pub = ClientTriggerPublisher._(credentials),
+      sub = ClientTriggerSubscriber._(credentials);
 }
 
-class ClientPublisherTrigger implements NatsClientPublisherTrigger {
-  final nats.Client _client;
+class ClientTriggerPublisher {
+  final NatsClient _client = NatsClient.instance;
   final Credentials _credentials;
-  ClientPublisherTrigger._(this._client, this._credentials);
+  final String _subjectPrefix;
+  ClientTriggerPublisher._(this._credentials) : _subjectPrefix = 'telegram.${_credentials.id}';
+
+  Future<bool> _pub(_subjects.Subject subject, String str) async {
+    final tokens = subject.tokens;
+    final subjectString = '$_subjectPrefix.$tokens';
+    return _client.pubString(subjectString, str);
+  }
 }
 
-class ClientPublisherAction implements NatsClientPublisherAction {
-  final nats.Client _client;
+class ClientTriggerSubscriber {
+  final NatsClient _client = NatsClient.instance;
   final Credentials _credentials;
-  ClientPublisherAction._(this._client, this._credentials);
+  final String _subjectPrefix;
+  ClientTriggerSubscriber._(this._credentials) : _subjectPrefix = 'telegram.${_credentials.id}';
+
+  Stream<T> _sub<T>({List<_filters.Filter>? filters, String? queueGroup, T Function(String)? jsonDecoder}) {
+    final tokens = filters?.expand((filter) => filter.tokens).toList() ?? ['>'];
+    final subjectStrings = tokens.map((token) => '$_subjectPrefix.$token').toList();
+    final subscriptions = subjectStrings
+        .map((subjectString) => _client.sub<T>(subjectString, queueGroup: queueGroup, jsonDecoder: jsonDecoder))
+        .toList();
+    final streams = subscriptions.map((subscription) => subscription.stream.map((message) => message.data));
+    return StreamGroup.merge<T>(streams);
+  }
 }
 
-class ClientSubscriber implements NatsClientSubscriber {
-  @override
-  final ClientSubscriberTrigger trigger;
-  @override
-  final ClientSubscriberAction action;
-  ClientSubscriber._(nats.Client client, Credentials credentials)
-    : trigger = ClientSubscriberTrigger._(client, credentials),
-      action = ClientSubscriberAction._(client, credentials);
+class ClientAction {
+  final Telegram _telegram;
+  ClientAction._(this._telegram);
 }
 
-class ClientSubscriberTrigger implements NatsClientSubscriberTrigger {
-  final nats.Client _client;
-  final Credentials _credentials;
-  ClientSubscriberTrigger._(this._client, this._credentials);
+class Credentials {
+  final String id;
+  final String token;
+
+  const Credentials({required this.id, required this.token});
+
+  static String get _credentialsPath => Platform.environment['CREDENTIALS_PATH'] ?? 'credentials.yaml';
+
+  static List<Credentials> all({String? path}) {
+    path ??= _credentialsPath;
+    final file = File(path);
+    if (!file.existsSync()) {
+      throw Exception('Credentials file not found at: $path');
+    }
+
+    final content = file.readAsStringSync();
+    final yamlData = yaml.loadYaml(content) as List;
+
+    return yamlData.map((item) {
+      final map = item as Map;
+      return Credentials(id: map['id'] as String, token: map['token'] as String);
+    }).toList();
+  }
 }
 
-class ClientSubscriberAction implements NatsClientSubscriberAction {
-  final nats.Client _client;
-  final Credentials _credentials;
-  ClientSubscriberAction._(this._client, this._credentials);
-}
-
-abstract class TriggerSubject extends NatsTriggerSubject {
-  final Credentials credentials;
-  TriggerSubject(this.credentials);
-  @override
-  String get toSubject => 'telegram.${credentials.id}.${super.toSubject}';
-}
-
-abstract class ActionSubject extends NatsActionSubject {
-  final Credentials credentials;
-  ActionSubject(this.credentials);
-  @override
-  String get toSubject => 'telegram.${credentials.id}.${super.toSubject}';
+extension CredentialsListExtension on List<Credentials> {
+  Credentials byId(String id) => firstWhere((e) => e.id == id);
 }

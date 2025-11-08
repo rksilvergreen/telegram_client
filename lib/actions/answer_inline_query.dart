@@ -1,26 +1,21 @@
-part of 'package:telegram_nats/telegram_nats.dart';
+part of 'package:telegram_client/telegram_client.dart';
 
-class AnswerInlineQuerySubject extends ActionSubject {
-  @override
-  String get toSubject => '${super.toSubject}.answer_inline_query';
-}
-
-extension PublisherAnswerInlineQueryExtension on ClientPublisherAction {
-  // ignore: unused_element
-  Future<bool> answerInlineQuery(AnswerInlineQuery message) async => _client
-      .request<bool>(
-        AnswerInlineQuerySubject().toSubject,
-        Uint8List.fromList(utf8.encode(jsonEncode(message.toJson()))),
-      )
-      .then((message) => message.data);
-}
-
-extension SubscriberAnswerInlineQueryExtension on ClientSubscriberAction {
-  // ignore: unused_element
-  nats.Subscription<AnswerInlineQuery> get answerInlineQuerySub => _client.sub<AnswerInlineQuery>(
-    AnswerInlineQuerySubject().toSubject,
-    jsonDecoder: (str) => AnswerInlineQuery.fromJson(jsonDecode(str)),
+extension AnswerInlineQueryExtension on ClientAction {
+  Future<bool> answerInlineQuery({
+    required String inlineQueryId,
+    required List<InlineQueryResult> results,
+    int? cacheTime,
+    bool? isPersonal,
+    String? nextOffset,
+    InlineQueryResultsButton? button,
+  }) async => _telegram.answerInlineQuery(
+    AnswerInlineQuery(
+      inlineQueryId: inlineQueryId,
+      results: results,
+      cacheTime: cacheTime,
+      isPersonal: isPersonal,
+      nextOffset: nextOffset,
+      button: button,
+    ),
   );
-
-  Stream<AnswerInlineQuery> get answerInlineQuery => answerInlineQuerySub.stream.map((message) => message.data);
 }

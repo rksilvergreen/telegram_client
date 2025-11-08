@@ -1,25 +1,19 @@
-part of 'package:telegram_nats/telegram_nats.dart';
+part of 'package:telegram_client/telegram_client.dart';
 
-class AnswerCallbackQuerySubject extends ActionSubject {
-  @override
-  String get toSubject => '${super.toSubject}.answer_callback_query';
-}
-
-extension PublisherAnswerCallbackQueryExtension on ClientPublisherAction {
-  // ignore: unused_element
-  Future<bool> answerCallbackQuery(AnswerCallbackQuery message) async => _client.request<bool>(
-    AnswerCallbackQuerySubject().toSubject,
-    Uint8List.fromList(utf8.encode(jsonEncode(message.toJson()))),
-  ).then((message) => message.data);
-}
-
-extension SubscriberAnswerCallbackQueryExtension on ClientSubscriberAction {
-  // ignore: unused_element
-  nats.Subscription<AnswerCallbackQuery> get answerCallbackQuerySub => _client.sub<AnswerCallbackQuery>(
-    AnswerCallbackQuerySubject().toSubject,
-    jsonDecoder: (str) => AnswerCallbackQuery.fromJson(jsonDecode(str)),
+extension AnswerCallbackQueryExtension on ClientAction {
+  Future<bool> answerCallbackQuery({
+    required String callbackQueryId,
+    String? text,
+    bool? showAlert,
+    String? url,
+    int? cacheTime,
+  }) async => _telegram.answerCallbackQuery(
+    AnswerCallbackQuery(
+      callbackQueryId: callbackQueryId,
+      text: text,
+      showAlert: showAlert,
+      url: url,
+      cacheTime: cacheTime,
+    ),
   );
-
-  Stream<AnswerCallbackQuery> get answerCallbackQuery =>
-      answerCallbackQuerySub.stream.map((message) => message.data);
 }
